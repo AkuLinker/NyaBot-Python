@@ -1,10 +1,11 @@
-import os
 import logging
-import reddit_api
+import os
 from random import choice
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from dotenv import load_dotenv
+from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
+
+import reddit_api
 
 load_dotenv()
 
