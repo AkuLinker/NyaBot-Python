@@ -1,4 +1,5 @@
 # NyaBot-Python
+```
  _   _             ____        _   
 | \ | |           |  _ \      | |  
 |  \| |_   _  __ _| |_) | ___ | |_ 
@@ -7,6 +8,7 @@
 |_| \_|\__, |\__,_|____/ \___/ \__|
         __/ |                      
        |___/                       
+```
 
 Telegram bot sending random anime girls pictures.
 Written on python. API reddit.

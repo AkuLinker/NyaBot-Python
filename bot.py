@@ -20,6 +20,7 @@ import os
 from random import choice
 
 from dotenv import load_dotenv
+from telegram import ReplyKeyboardMarkup
 from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
 
 import reddit_api
@@ -30,12 +31,18 @@ load_dotenv()
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
 
-def send_message_telegram(context, chat_id, text, photo=None):
+def send_message_telegram(context, chat_id, text, photo=None, button=False):
     log.debug('Function "send_message_telegram" called.')
+    if button is True:
+        reply_markup = ReplyKeyboardMarkup([['/info', '/random']],
+                                           resize_keyboard=True)
+    else:
+        reply_markup = None
     if photo is None:
         context.bot.send_message(chat_id=chat_id,
                                  text=text,
-                                 disable_web_page_preview=True)
+                                 disable_web_page_preview=True,
+                                 reply_markup=reply_markup)
         log.info(f'send message with text: {text}')
     else:
         context.bot.send_message(chat_id=chat_id,
@@ -50,7 +57,11 @@ def start(update, context):
     text = (
         'Welcome to NyaBot paradise!\n'
         'To get more information about bot\'s\n commands send command /info')
-    send_message_telegram(context, update.effective_chat.id, text)
+    button = True
+    send_message_telegram(context=context,
+                          chat_id=update.effective_chat.id,
+                          text=text,
+                          button=button)
 
 
 def info(update, context):
@@ -62,7 +73,9 @@ def info(update, context):
             '/random - send random picture from any subredit\n\n'
             'List of subreddits:\n'
             f'{list_of_subreddits}')
-    send_message_telegram(context, update.effective_chat.id, text)
+    send_message_telegram(context=context,
+                          chat_id=update.effective_chat.id,
+                          text=text)
 
 
 def get(update, context):
@@ -73,12 +86,16 @@ def get(update, context):
         text = (f'There is no subredit "{subreddit}".\n'
                 'or I don\' send pictures from there.\n'
                 'You can find list of subreddits in /info')
-        send_message_telegram(context, update.effective_chat.id, text)
+        send_message_telegram(context=context,
+                              chat_id=update.effective_chat.id,
+                              text=text)
     else:
         submission = reddit_api.get_random_submission(subreddit)
         text = reddit_api.make_text_answer(submission)
-        send_message_telegram(context, update.effective_chat.id, text,
-                              submission.url)
+        send_message_telegram(context=context,
+                              chat_id=update.effective_chat.id,
+                              text=text,
+                              photo=submission.url)
 
 
 def random(update, context):
@@ -87,15 +104,19 @@ def random(update, context):
     random_sub = choice(sub_list)
     submission = reddit_api.get_random_submission(random_sub)
     text = reddit_api.make_text_answer(submission)
-    send_message_telegram(context, update.effective_chat.id, text,
-                          submission.url)
+    send_message_telegram(context=context,
+                          chat_id=update.effective_chat.id,
+                          text=text,
+                          photo=submission.url)
 
 
 def text_answer(update, context):
     log.debug('Function "text_answer" called.')
     text = ('I don\'t react to text messages.\n'
             'You can check correct commands here /info')
-    send_message_telegram(context, update.effective_chat.id, text)
+    send_message_telegram(context=context,
+                          chat_id=update.effective_chat.id,
+                          text=text)
 
 
 def main():
