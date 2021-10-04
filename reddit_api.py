@@ -44,17 +44,16 @@ SUBREDDITS = {
     'Patchuu': 'a place for anime fanart with abstract.',
     'Usagimimi': 'bunniegirls.',
     'kitsunemimi': 'foxgirls.',
-    'kemonomimi': 'more animalgirls but not only fox or bunny.',
     'cutelittlefangs': 'for fans of characters with fangs.',
     'headpats': 'anime characters in need of or receiving headpats.',
     'ChurchofBelly': 'place where appreciate the belly.',
     'animelegs': 'place where appreciate the legs.',
     'ZettaiRyouiki': '("Absolute Territory")',
     'thighdeology': 'more thighs but NSFW.',
-    'twintails': 'anime girls with twintails.',
     'pouts': 'pouting girls and sometimes guys.',
     'gao': 'cute anime girls making scary noises "gao!".',
     'tyingherhairup': 'anime girls tying their hair up.',
+    'twintails': 'anime girls with twintails.',
     'animeponytails': 'for those who have a fetish for ponytails.',
     'silverhair': 'for all silver-haired waifu needs.',
     'longhairedwaifus': 'dedicated to anime girls with long hair.',
@@ -70,7 +69,7 @@ reddit = praw.Reddit(
 
 
 def get_random_submission(subreddit_name):
-    log.debug('Function "get_random_submission" called.')
+    log.debug(f'Function "get_random_submission" called for {subreddit_name}.')
     submission = reddit.subreddit(subreddit_name).random()
     if submission is None:
         log.debug(f'Method "random" don\'t work in subreddit {subreddit_name}')
@@ -82,6 +81,19 @@ def get_random_submission(subreddit_name):
         random_number = choice(list(range(0, 50)))
         log.debug(f'Hot of subreddit {subreddit_name} number {random_number}.')
         submission = submissions[random_number]
+    while not (submission.url[-3:] == 'png' or submission.url[-3:] == 'jpg'):
+        log.debug(f'Post {random_number} has inappropriate capture.')
+        submissions = [
+            one_submission
+            for one_submission in reddit.subreddit(subreddit_name).hot(
+                limit=50)
+        ]
+        random_number = choice(list(range(0, 50)))
+        submission = submissions[random_number]
+        if submission.url[-3:] == 'png' or submission.url[-3:] == 'jpg':
+            log.debug(f'Hot of subreddit {subreddit_name} '
+                        f'number {random_number}.')
+            is_capture = True
     return submission
 
 

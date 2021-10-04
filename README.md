@@ -10,9 +10,9 @@
        |___/                       
 ```
 
-Telegram bot sending random anime girls pictures.
-Written on python. API reddit.
-GitHub: https://github.com/AkuLinker/NyaBot-Python
+Telegram bot sending random anime girls pictures.  
+Written on python. API reddit.  
+GitHub: https://github.com/AkuLinker/NyaBot-Python  
 Telegram: @NyaPicturesBot
 
 ### Start

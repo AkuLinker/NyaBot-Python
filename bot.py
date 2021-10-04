@@ -43,13 +43,13 @@ def send_message_telegram(context, chat_id, text, photo=None, button=False):
                                  text=text,
                                  disable_web_page_preview=True,
                                  reply_markup=reply_markup)
-        log.info(f'send message with text: {text}')
+        log.info(f'send message with text: {text[:37]}...')
     else:
         context.bot.send_message(chat_id=chat_id,
                                  text=text,
                                  disable_web_page_preview=True)
         context.bot.send_photo(chat_id=chat_id, photo=photo)
-        log.info(f'send message with text: {text}')
+        log.info(f'send message with text: {text[:37]}...')
 
 
 def start(update, context):
@@ -120,6 +120,7 @@ def text_answer(update, context):
 
 
 def main():
+    
     log.debug('Start of program.')
     updater = Updater(token=TOKEN)
     dispatcher = updater.dispatcher
@@ -133,6 +134,7 @@ def main():
 
     updater.start_polling()
     updater.idle()
+
 
 
 if __name__ == '__main__':
