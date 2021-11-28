@@ -21,6 +21,7 @@ Telegram: @NyaPicturesBot
 ```
 pip install -r requirements.txt
 ``` 
+- Create .env file and add in CLIENT_ID, CLIENT_SECRET, USERAGENT AND TELEGRAM_BOT_TOKEN
 - Enter command:
 ```
 python bot.py
