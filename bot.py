@@ -25,6 +25,7 @@ from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
 
 import reddit_api
 from NyaBot_logging import log
+from subreddits import SUBREDDITS
 
 load_dotenv()
 
@@ -67,7 +68,7 @@ def start(update, context):
 def info(update, context):
     log.debug('Function "info" called.')
     list_of_subreddits = ''
-    for key, value in reddit_api.SUBREDDITS.items():
+    for key, value in SUBREDDITS.items():
         list_of_subreddits += f'/get_{key} - {value}\n'
     text = ('I can send anime pictures from reddit.\n\n'
             '/random - send random picture from any subredit\n\n'
@@ -82,7 +83,7 @@ def get(update, context):
     log.debug('Function "get" called.')
     plus_command = update.message.text.split('get_')
     subreddit = plus_command[1]
-    if subreddit not in reddit_api.SUBREDDITS.keys():
+    if subreddit not in SUBREDDITS.keys():
         text = (f'There is no subredit "{subreddit}".\n'
                 'or I don\' send pictures from there.\n'
                 'You can find list of subreddits in /info')
@@ -100,7 +101,7 @@ def get(update, context):
 
 def random(update, context):
     log.debug('Function "random" called.')
-    sub_list = list(reddit_api.SUBREDDITS.keys())
+    sub_list = list(SUBREDDITS.keys())
     random_sub = choice(sub_list)
     submission = reddit_api.get_random_submission(random_sub)
     text = reddit_api.make_text_answer(submission)
