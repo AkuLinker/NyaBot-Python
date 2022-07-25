@@ -19,60 +19,57 @@ author: AkuLinker
 import os
 from random import choice
 
-import praw
+import asyncpraw
 from dotenv import load_dotenv
 
 from NyaBot_logging import log
 
+LIST_OF_NUMBERS = list(range(0, 50))
+
 load_dotenv()
 
 
-reddit = praw.Reddit(
+reddit = asyncpraw.Reddit(
     client_id=os.getenv('CLIENT_ID'),
     client_secret=os.getenv('CLIENT_SECRET'),
     user_agent=os.getenv('USERAGENT'),
 )
 
 
-def get_random_submission(subreddit_name):
-    log.debug(f'Function "get_random_submission" called for {subreddit_name}.')
-    submission = reddit.subreddit(subreddit_name).random()
-    if submission is None:
-        log.debug(f'Method "random" don\'t work in subreddit {subreddit_name}')
-        submissions = [
-            one_submission
-            for one_submission in reddit.subreddit(subreddit_name).hot(
-                limit=50)
-        ]
-        random_number = choice(list(range(0, 50)))
-        log.debug(f'Hot of subreddit {subreddit_name} number {random_number}.')
-        submission = submissions[random_number]
-    while not (submission.url[-3:] == 'png' or submission.url[-3:] == 'jpg'):
-        log.debug(f'Post {random_number} has inappropriate capture.')
-        submissions = [
-            one_submission
-            for one_submission in reddit.subreddit(subreddit_name).hot(
-                limit=50)
-        ]
-        random_number = choice(list(range(0, 50)))
-        submission = submissions[random_number]
-        if submission.url[-3:] == 'png' or submission.url[-3:] == 'jpg':
-            log.debug(f'Hot of subreddit {subreddit_name} '
-                        f'number {random_number}.')
-            is_capture = True
+async def choose_submission(subreddit):
+    log.debug(f'Function "choose_submission" called')
+    submissions = [
+        one_submission async for one_submission in subreddit.hot(limit=50)
+    ]
+    random_number = choice(LIST_OF_NUMBERS)
+    submission = submissions[random_number]
+    log.debug(
+        f'Chosen hot of subreddit {subreddit.display_name} '
+        f'number {random_number}.'
+    )
     return submission
 
 
-def make_text_answer(submission):
+async def get_random_submission(subreddit_name):
+    log.debug(f'Function "get_random_submission" called for {subreddit_name}.')
+    subreddit = await reddit.subreddit(subreddit_name)
+    submission = await subreddit.random()
+    if submission is None:
+        log.debug(f'Method "random" don\'t work in subreddit {subreddit_name}')
+        submission = await choose_submission(subreddit)
+    while not submission.url[-3:] in ('png', 'jpg'):
+        log.debug(f'Chosen post has inappropriate capture.')
+        submission = await choose_submission(subreddit)
+    return submission
+
+
+async def make_text_answer(submission):
     log.debug('Function "make_text_answer" called.')
-    if submission.over_18:
-        nsfw = 'Yes'
-    else:
-        nsfw = 'No'
-    text = (f'Here is your picture from r/{submission.subreddit}\n\n'
-            f'Title: {submission.title}\n'
-            f'Author of post: {submission.author}\n'
-            f'Post url: https://www.reddit.com{submission.permalink}\n'
-            f'Origin url: {submission.url}\n'
-            f'NSFW: {nsfw}\n')
+    nsfw = 'Yes' if submission.over_18 else 'No'
+    text = (f'✓ <b>Picture from:</b> r/{submission.subreddit}\n'
+            f'✓ <b>Title:</b> {submission.title}\n'
+            f'✓ <b>Author of post:</b> {submission.author}\n'
+            f'✓ <b>Post url:</b> https://www.reddit.com{submission.permalink}\n'
+            f'✓ <b>Origin url:</b> {submission.url}\n'
+            f'✓ <b>NSFW:</b> {nsfw}\n')
     return text
