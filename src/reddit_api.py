@@ -22,7 +22,7 @@ from random import choice
 import asyncpraw
 from dotenv import load_dotenv
 
-from NyaBot_logging import log
+from loger import log
 
 LIST_OF_NUMBERS = list(range(0, 50))
 
