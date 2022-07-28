@@ -33,7 +33,7 @@ import reddit_api
 from loger import log
 import constants
 from db_control import (
-    check_language, user_check, registration, get_user
+    check_language, user_check, registration, get_user, check_nsfw
 )
 from conversation import conv_handler
 from db import AsyncSessionLocal
@@ -51,9 +51,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     if not await user_check(user_id):
         await registration(user_id)
-    text = await check_language(user_id, constants.START_ANSWER)
+    users_language = await check_language(user_id)
+    text = constants.START_ANSWER[users_language]
     reply_markup = ReplyKeyboardMarkup(
-        [['/list', '/random'], ['/about_me', '/settings']],
+        [['/info', '/list', '/random'], ['/about_me', '/settings']],
         resize_keyboard=True
     )
     await send_message_telegram(
@@ -68,7 +69,8 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Sends information about bot functional"""
     log.debug('Function "info" called.')
     user_id = update.effective_user.id
-    text = await check_language(user_id, constants.INFORMATION)
+    users_language = await check_language(user_id)
+    text = constants.INFORMATION[users_language]
     await send_message_telegram(
         update=update,
         context=context,
@@ -77,16 +79,13 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def info_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Sends list of recommended subreddits"""
+    """Sends list of supported subreddits"""
     log.debug('Function "info_list" called.')
-    list_of_subreddits = ''
+    user_id = update.effective_user.id
+    users_language = await check_language(user_id)
+    text = constants.PRE_SUBREDDIT[users_language]
     for key, value in constants.SUBREDDITS.items():
-        list_of_subreddits += f'/get_{key} - {value}\n'
-    text = (
-        'LIST OF SUBREDDITS.\n\n'
-        '/random - send random picture from any subredit\n\n'
-        f'{list_of_subreddits}'
-    )
+        text += f'/get_{key} - {value[users_language]}\n'
     await send_message_telegram(
         update=update,
         context=context,
@@ -102,7 +101,8 @@ async def about_user(
     user_id = update.effective_user.id
     async with AsyncSessionLocal() as session:
         user = await get_user(user_id, session)
-    text = await check_language(user_id, constants.USER_INFO)
+    users_language = await check_language(user_id)
+    text = constants.USER_INFO[users_language]
     text += 'ON' if user.nsfw_is_ok == True else 'OFF'
     await send_message_telegram(
         update=update,
@@ -113,21 +113,36 @@ async def about_user(
 
 async def get(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     log.debug('Function "get" called.')
+    user_id = update.effective_user.id
+    nsfw_is_ok = await check_nsfw(user_id)
     plus_command = update.message.text.split('get_')
     subreddit = plus_command[1]
     if subreddit not in constants.SUBREDDITS.keys():
         text = (
             f'There is no subredit "{subreddit}".\n'
             'or I don\' send pictures from there.\n'
-            'You can find list of subreddits in /info'
+            'You can find list of subreddits in /list'
         )
-        send_message_telegram(
+        await send_message_telegram(
             update=update,
             context=context,
             text=text
         )
     else:
+        print(not nsfw_is_ok)
+        print(subreddit in constants.NSFW_SUBREDDITS)
+        if not nsfw_is_ok and subreddit in constants.NSFW_SUBREDDITS:
+            text = 'nsfw content in subreddit'
+            await send_message_telegram(
+                update=update,
+                context=context,
+                text=text
+            )
+            return None
         submission = await reddit_api.get_random_submission(subreddit)
+        if not nsfw_is_ok:
+            while submission.over_18:
+                submission = await reddit_api.get_random_submission(subreddit)
         text = await reddit_api.make_text_answer(submission)
         await send_message_telegram(
             update=update,
@@ -139,7 +154,10 @@ async def get(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def random(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     log.debug('Function "random" called.')
-    sub_list = list(constants.SUBREDDITS.keys())
+    sub_list = list(set(constants.SUBREDDITS.keys()).difference(
+        constants.NSFW_SUBREDDITS
+    ))
+    print(sub_list)
     random_sub = choice(sub_list)
     submission = await reddit_api.get_random_submission(random_sub)
     text = await reddit_api.make_text_answer(submission)
@@ -180,7 +198,7 @@ async def text_answer(
 ) -> None:
     log.debug('Function "text_answer" called.')
     text = (
-        'I don\'t react to text messages.\n'
+        'I don\'t react to text messages or this command.\n'
         'You can check correct commands here /info'
     )
     await send_message_telegram(

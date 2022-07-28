@@ -8,8 +8,9 @@ from telegram.ext import (
 
 from loger import log
 import constants
+from db import AsyncSessionLocal
 from db_control import (
-    check_language, change_language_db, change_nsfw_db
+    check_language, change_language_db, change_nsfw_db, get_user
 )
 
 # States
@@ -33,21 +34,22 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     """Sends to user settings inline buttons"""
     log.debug('Function "settings" called.')
     user_id = update.effective_user.id
-    settings_name = await check_language(user_id, constants.SETTINGS)
+    users_language = await check_language(user_id)
+    settings_name = constants.SETTINGS[users_language]
     keyboard = [
         [
             InlineKeyboardButton(
-                await check_language(user_id, constants.CHANGE_LANGUAGE_BUTTON),
+                constants.CHANGE_LANGUAGE_BUTTON[users_language],
                 callback_data=CALLBACK_CHANGE_LANGUAGE_COMMAND
             ),
             InlineKeyboardButton(
-                await check_language(user_id, constants.CHANGE_NSFW_BUTTON),
+                constants.CHANGE_NSFW_BUTTON[users_language],
                 callback_data=CALLBACK_CHANGE_NSFW_COMMAND
             ),
         ],
         [
             InlineKeyboardButton(
-                await check_language(user_id, constants.CLOSE_SETTINGS_BUTTON),
+                constants.CLOSE_SETTINGS_BUTTON[users_language],
                 callback_data=CALLBACK_EXIT_COMMAND
             )
         ],
@@ -75,23 +77,22 @@ async def change_language(
     query = update.callback_query
     await query.answer()
     user_id = update.effective_user.id
-    settings_name = await check_language(
-        user_id, constants.CHANGE_LANGUAGE_SETTINGS
-    )
+    users_language = await check_language(user_id)
+    settings_name = constants.CHANGE_LANGUAGE_SETTINGS[users_language]
     keyboard = [
         [
             InlineKeyboardButton(
-                await check_language(user_id, constants.CHOOSE_ENGLISH_LANGUAGE),
+                constants.CHOOSE_ENGLISH_LANGUAGE[users_language],
                 callback_data=CALLBACK_ENGLISH_COMMAND
             ),
             InlineKeyboardButton(
-                await check_language(user_id, constants.CHOOSE_RUSSIAN_LANGUAGE),
+                constants.CHOOSE_RUSSIAN_LANGUAGE[users_language],
                 callback_data=CALLBACK_RUSSIAN_COMMAND
             ),
         ],
         [
             InlineKeyboardButton(
-                await check_language(user_id, constants.BACK_BUTTON),
+                constants.BACK_BUTTON[users_language],
                 callback_data=CALLBACK_BACK_COMMAND
             )
         ],
@@ -109,12 +110,16 @@ async def change_language_reaction(
     """Function for reaction on change language button"""
     log.debug('Function "change_language_reaction" called.')
     user_id = update.effective_user.id
+    users_language = await check_language(user_id)
     query = update.callback_query
-    chosen_language = query.data
-    await change_language_db(user_id, constants.WICH_LANGUAGE[chosen_language])
-    answer = await check_language(
-        user_id, constants.CHANGED_LANGUAGE_NOTIFIVATION
-    )
+    chosen_language = constants.WICH_LANGUAGE[query.data]
+    if users_language == chosen_language:
+        answer = constants.NOT_CHANGED_LANGUAGE_NOTIFIVATION[users_language]
+        await query.answer(text=answer)
+        return SETTINGS_STATE
+    await change_language_db(user_id, chosen_language)
+    users_language = await check_language(user_id)
+    answer = constants.CHANGED_LANGUAGE_NOTIFIVATION[users_language]
     await query.answer(text=answer)
     await change_language(update, context)
     return SETTINGS_STATE
@@ -126,23 +131,24 @@ async def change_nsfw(
     """Sends to user inline buttons for changing nsfw preferences"""
     log.debug('Function "change_nsfw" called.')
     user_id = update.effective_user.id
-    settings_name = await check_language(user_id, constants.CHANGE_NSFW_SETTINGS)
+    users_language = await check_language(user_id)
+    settings_name = constants.CHANGE_NSFW_SETTINGS[users_language]
     query = update.callback_query
     await query.answer()
     keyboard = [
         [
             InlineKeyboardButton(
-                await check_language(user_id, constants.CHOOSE_NSFW_ON),
+                constants.CHOOSE_NSFW_ON[users_language],
                 callback_data=CALLBACK_NSFW_ON_COMMAND
             ),
             InlineKeyboardButton(
-                await check_language(user_id, constants.CHOOSE_NSFW_OFF),
+                constants.CHOOSE_NSFW_OFF[users_language],
                 callback_data=CALLBACK_NSFW_OFF_COMMAND
             ),
         ],
         [
             InlineKeyboardButton(
-                await check_language(user_id, constants.BACK_BUTTON),
+                constants.BACK_BUTTON[users_language],
                 callback_data=CALLBACK_BACK_COMMAND
             )
         ],
@@ -160,10 +166,14 @@ async def change_nsfw_reaction(
     """Function for reaction on change nsfw button"""
     log.debug('Function "change_nsfw_reaction" called.')
     user_id = update.effective_user.id
+    async with AsyncSessionLocal() as session:
+        user = await get_user(user_id, session)
+    users_language =  user.language
     query = update.callback_query
-    chosen_preference = query.data
-    await change_nsfw_db(user_id, constants.WICH_NSFW[chosen_preference])
-    answer = await check_language(user_id, constants.CHANGED_NSFW_NOTIFIVATION)
+    chosen_preference = constants.WICH_NSFW[query.data]
+    if not user.nsfw_is_ok == chosen_preference:
+        await change_nsfw_db(user_id, chosen_preference)
+    answer = constants.CHANGED_NSFW_NOTIFIVATION[users_language]
     await query.answer(text=answer)
     return SETTINGS_STATE
 

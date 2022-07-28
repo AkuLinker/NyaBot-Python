@@ -32,11 +32,11 @@ async def user_check(telegram_id: int) -> bool:
     return False
 
 
-async def check_language(telegram_id: int, const: dict[str, str]) -> str:
-    """Returns constant in user's language"""
+async def check_language(telegram_id: int) -> str:
+    """Returns user's language"""
     async with AsyncSessionLocal() as session:
         user = await get_user(telegram_id, session)
-    return const[user.language]
+    return user.language
 
 
 async def check_nsfw(telegram_id: int) -> bool:

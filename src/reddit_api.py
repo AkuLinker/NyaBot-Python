@@ -20,11 +20,13 @@ import os
 from random import choice
 
 import asyncpraw
+from asyncpraw.models.reddit.submission import Submission
+from asyncpraw.models.reddit.subreddit import Subreddit
 from dotenv import load_dotenv
 
 from loger import log
 
-LIST_OF_NUMBERS = list(range(0, 50))
+LIST_OF_NUMBERS = list(range(0, 100))
 
 load_dotenv()
 
@@ -36,10 +38,10 @@ reddit = asyncpraw.Reddit(
 )
 
 
-async def choose_submission(subreddit):
+async def choose_submission(subreddit: Subreddit) -> Submission:
     log.debug(f'Function "choose_submission" called')
     submissions = [
-        one_submission async for one_submission in subreddit.hot(limit=50)
+        one_submission async for one_submission in subreddit.hot(limit=100)
     ]
     random_number = choice(LIST_OF_NUMBERS)
     submission = submissions[random_number]
@@ -50,20 +52,20 @@ async def choose_submission(subreddit):
     return submission
 
 
-async def get_random_submission(subreddit_name):
+async def get_random_submission(subreddit_name: str) -> Submission:
     log.debug(f'Function "get_random_submission" called for {subreddit_name}.')
     subreddit = await reddit.subreddit(subreddit_name)
     submission = await subreddit.random()
     if submission is None:
         log.debug(f'Method "random" don\'t work in subreddit {subreddit_name}')
         submission = await choose_submission(subreddit)
-    while not submission.url[-3:] in ('png', 'jpg'):
+    while not submission.url[-3:] in ('png', 'jpg', 'jpeg'):
         log.debug(f'Chosen post has inappropriate capture.')
         submission = await choose_submission(subreddit)
     return submission
 
 
-async def make_text_answer(submission):
+async def make_text_answer(submission: Submission) -> str:
     log.debug('Function "make_text_answer" called.')
     nsfw = 'Yes' if submission.over_18 else 'No'
     text = (f'✓ <b>Picture from:</b> r/{submission.subreddit}\n'
